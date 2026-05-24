@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     ...shadow.fab,
   },
   saveBtnText: { fontWeight: "700", fontSize: fontSizes.bodyLarge, color: colors.textPrimary, letterSpacing: 1 },
-  pickBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)" },
+  pickBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay },
   pickSheet: {
     position: "absolute", bottom: 0, left: 0, right: 0,
     backgroundColor: colors.background,

@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: fontSizes.h3, fontWeight: "600", color: colors.textPrimary },
   emptyDesc: { fontSize: fontSizes.body, color: colors.textSecondary, marginTop: spacing.xs },
   modalWrap: { flex: 1, justifyContent: "flex-end" },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)" },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay },
   modalSheet: {
     backgroundColor: colors.background,
     borderTopLeftRadius: radius.xl,

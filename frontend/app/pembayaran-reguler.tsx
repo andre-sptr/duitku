@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   modalWrap: { flex: 1, justifyContent: "flex-end" },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)" },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay },
   modalSheet: {
     backgroundColor: colors.background,
     borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
