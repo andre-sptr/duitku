@@ -165,6 +165,7 @@ function CategoryFormModal({ visible, editing, type, onClose, onSave }: any) {
       >
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose} />
         <View style={styles.modalSheet}>
+          <View style={styles.sheetHandle} />
           <Text style={styles.modalTitle}>
             {editing ? "Edit Kategori" : `Buat Kategori ${type === "expense" ? "Pengeluaran" : "Pemasukan"}`}
           </Text>
@@ -257,6 +258,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     padding: spacing.lg, paddingBottom: spacing.xl,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: "center",
+    marginBottom: spacing.md,
   },
   modalTitle: { fontSize: fontSizes.h2, fontWeight: "600", color: colors.textPrimary, marginBottom: spacing.md },
   label: {

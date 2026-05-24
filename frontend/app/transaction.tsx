@@ -309,6 +309,7 @@ export default function TransactionScreen() {
       <Modal visible={accountPickerOpen} transparent animationType="slide" onRequestClose={() => setAccountPickerOpen(false)}>
         <TouchableOpacity style={styles.pickBackdrop} activeOpacity={1} onPress={() => setAccountPickerOpen(false)} />
         <View style={styles.pickSheet}>
+          <View style={styles.sheetHandle} />
           <Text style={styles.modalTitle}>Pilih Akun</Text>
           {accounts.map((a) => (
             <TouchableOpacity
@@ -526,6 +527,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
     padding: spacing.lg, paddingBottom: spacing.xl,
     maxHeight: "70%",
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: "center",
+    marginBottom: spacing.md,
   },
   modalTitle: { fontSize: fontSizes.h3, fontWeight: "600", color: colors.textPrimary, marginBottom: spacing.md },
   pickRow: {

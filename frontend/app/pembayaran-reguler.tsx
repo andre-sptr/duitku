@@ -264,6 +264,7 @@ function RecurringFormModal({ visible, editing, accounts, categories, onClose, o
       >
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={onClose} />
         <View style={styles.modalSheet}>
+          <View style={styles.sheetHandle} />
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <Text style={styles.modalTitle}>
               {editing ? "Edit Pembayaran Reguler" : "Tambah Pembayaran Reguler"}
@@ -420,6 +421,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
     padding: spacing.lg, paddingBottom: spacing.xl,
     maxHeight: "85%",
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: "center",
+    marginBottom: spacing.md,
   },
   modalTitle: { fontSize: fontSizes.h2, fontWeight: "600", color: colors.textPrimary, marginBottom: spacing.md },
   label: {
