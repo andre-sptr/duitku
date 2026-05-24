@@ -36,8 +36,8 @@ export function Header({ title, onMenu, right, subtitle, testID }: Props) {
 const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: colors.primary,
-    borderBottomLeftRadius: radius.xl,
-    borderBottomRightRadius: radius.xl,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
     paddingTop: (Platform.OS === "android" ? StatusBar.currentHeight || 0 : 48) + spacing.sm,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.md,

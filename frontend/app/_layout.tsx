@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { colors } from "@/src/lib/theme";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AppLockProvider, useAppLock } from "@/src/auth/AppLockContext";
 import { LockOverlay } from "@/src/auth/LockOverlay";
@@ -20,7 +21,7 @@ function RootStack() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: "#F8F5EC" },
+          contentStyle: { backgroundColor: colors.background },
         }}
       >
         <Stack.Screen name="index" />

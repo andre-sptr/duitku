@@ -43,10 +43,10 @@ export const CATEGORY_ICONS = [
 ];
 
 export const COLOR_PALETTE = [
-  "#4A8B7B", "#5A9B8E", "#4CAF50", "#FFC107", "#FF9800",
-  "#E24B4A", "#EC407A", "#9C27B0", "#7E57C2", "#5C6BC0",
-  "#42A5F5", "#26A69A", "#66BB6A", "#FFCA28", "#FF7043",
-  "#8D6E63", "#757575", "#546E7A",
+  "#4F46E5", "#6366F1", "#10B981", "#F59E0B", "#F97316",
+  "#EF4444", "#EC4899", "#A855F7", "#8B5CF6", "#3B82F6",
+  "#0EA5E9", "#14B8A6", "#22C55E", "#EAB308", "#FB7185",
+  "#92400E", "#64748B", "#475569",
 ];
 
 export function getIcon(name: string): LucideIcon {

@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     flexDirection: "row",
     alignItems: "center",
-    borderBottomRightRadius: radius.xl,
+    borderBottomRightRadius: radius.lg,
   },
   avatar: {
     width: 52,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   itemActive: {
-    backgroundColor: "rgba(74,139,123,0.1)",
+    backgroundColor: colors.primarySoft,
     borderLeftWidth: 3,
     borderLeftColor: colors.primary,
   },
