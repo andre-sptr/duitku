@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
-import { ChevronLeft, ChevronRight, Inbox } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, ChevronsRight, Inbox } from "lucide-react-native";
 
 import { Header } from "@/src/components/Header";
 import { FAB } from "@/src/components/FAB";
@@ -13,7 +13,7 @@ import { DonutChart } from "@/src/components/DonutChart";
 import { Icon } from "@/src/lib/icons";
 import { Stats, Summary, SummaryEntry, Recurring } from "@/src/lib/api";
 import { colors, fontSizes, radius, shadow, spacing } from "@/src/lib/theme";
-import { formatRp, getPeriodRange, Period, shiftPeriod } from "@/src/lib/format";
+import { formatRp, getPeriodRange, Period, shiftPeriod, toIsoDate } from "@/src/lib/format";
 
 const PERIODS: { value: Period; label: string }[] = [
   { value: "day", label: "Hari" },
@@ -33,6 +33,11 @@ export default function Beranda() {
   const [refreshing, setRefreshing] = useState(false);
 
   const range = useMemo(() => getPeriodRange(period, refDate), [period, refDate]);
+
+  const todayIso = toIsoDate(new Date());
+  // Tombol "maju" dimatikan kalau periode yang tampil sudah mencakup hari ini,
+  // karena periode berikutnya belum waktunya (masih di masa depan).
+  const atFutureEdge = range.end >= todayIso;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,11 +118,21 @@ export default function Beranda() {
         <Text style={styles.dateLabel}>{range.label}</Text>
         <TouchableOpacity
           onPress={() => setRefDate(shiftPeriod(period, refDate, 1))}
+          disabled={atFutureEdge}
           testID="date-next"
           hitSlop={10}
           style={styles.navBtn}
         >
-          <ChevronRight size={22} color={colors.textPrimary} />
+          <ChevronRight size={22} color={atFutureEdge ? colors.textMuted : colors.textPrimary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setRefDate(new Date())}
+          disabled={atFutureEdge}
+          testID="date-today"
+          hitSlop={10}
+          style={styles.navBtn}
+        >
+          <ChevronsRight size={22} color={atFutureEdge ? colors.textMuted : colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
