@@ -269,6 +269,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...shadow.card,
   },
   icon: {

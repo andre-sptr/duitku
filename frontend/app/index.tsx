@@ -272,12 +272,16 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     alignItems: "center",
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...shadow.card,
   },
   list: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     paddingVertical: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...shadow.card,
   },
   row: {
@@ -315,6 +319,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.xl,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...shadow.card,
   },
   emptyTitle: {

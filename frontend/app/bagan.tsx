@@ -180,6 +180,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...shadow.card,
   },
   stat: { paddingVertical: spacing.sm },
@@ -190,6 +192,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...shadow.card,
   },
 });

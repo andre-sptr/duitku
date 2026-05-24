@@ -276,6 +276,8 @@ const styles = StyleSheet.create({
   sectionCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...shadow.card,
     overflow: "hidden",
   },

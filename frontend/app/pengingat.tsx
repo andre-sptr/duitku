@@ -387,6 +387,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     flexDirection: "row",
     marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...shadow.card,
   },
   icon: {
