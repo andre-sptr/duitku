@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tabBtnActive: { backgroundColor: "#FFFFFF" },
-  tabLabel: { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.9)" },
+  tabLabel: { fontSize: fontSizes.small, fontWeight: "600", color: "rgba(255,255,255,0.9)", letterSpacing: 0.5 },
   tabLabelActive: { color: colors.primary },
   granRow: {
     flexDirection: "row",
