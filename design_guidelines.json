@@ -1,0 +1,165 @@
+{
+  "project_context": {
+    "app_name": "DuitKu",
+    "platform": "React Native Expo",
+    "language": "id-ID",
+    "currency": "IDR",
+    "currency_format": "Rp123.456",
+    "first_day_of_week": "Senin"
+  },
+  "theme": {
+    "mode": "light",
+    "archetype": "Organic & Earthy",
+    "colors": {
+      "primary": "#4A8B7B",
+      "primary_light": "#5A9B8E",
+      "background": "#F8F5EC",
+      "background_alt": "#F5F2E8",
+      "surface": "#FFFFFF",
+      "accent": "#FFC107",
+      "text_primary": "#2C2C2C",
+      "text_secondary": "#7A7A7A",
+      "success": "#4CAF50",
+      "expense": "#E24B4A",
+      "danger": "#E24B4A",
+      "income": "#4CAF50",
+      "warning": "#FF9800",
+      "border": "#E5E5E5"
+    },
+    "typography": {
+      "primary_font": "System",
+      "heading_weight": "500",
+      "body_weight": "400",
+      "number_weight": "bold",
+      "sizes": {
+        "h1": 22,
+        "h2": 20,
+        "h3": 18,
+        "body_large": 16,
+        "body": 14,
+        "small": 12
+      }
+    },
+    "layout": {
+      "border_radius": {
+        "small": 8,
+        "medium": 12,
+        "large": 16,
+        "xlarge": 24
+      },
+      "spacing": {
+        "xs": 4,
+        "sm": 8,
+        "md": 16,
+        "lg": 24,
+        "xl": 32
+      }
+    }
+  },
+  "components": {
+    "top_bar": {
+      "background_color": "#4A8B7B",
+      "border_bottom_left_radius": 24,
+      "border_bottom_right_radius": 24,
+      "text_color": "#FFFFFF",
+      "padding_bottom": 24,
+      "padding_top": "safe-area"
+    },
+    "fab": {
+      "background_color": "#FFC107",
+      "shape": "circle",
+      "position": "bottom-right",
+      "icon_color": "#2C2C2C",
+      "elevation": 4
+    },
+    "card": {
+      "background_color": "#FFFFFF",
+      "border_radius": 16,
+      "padding": 16,
+      "elevation": 2,
+      "shadow_color": "#000000",
+      "shadow_opacity": 0.05,
+      "shadow_radius": 4,
+      "shadow_offset": { "width": 0, "height": 2 }
+    }
+  },
+  "screens": {
+    "beranda": {
+      "title": "Beranda",
+      "features": [
+        "Tabs: PENGELUARAN | PEMASUKAN",
+        "Period Selector: Hari/Minggu/Bulan/Tahun",
+        "Donut chart (expense/income breakdown) with total in center",
+        "Category list sorted by amount",
+        "FAB"
+      ]
+    },
+    "rekening": {
+      "title": "Rekening",
+      "features": [
+        "Total balance display",
+        "List of wallets with icons and balances"
+      ]
+    },
+    "bagan": {
+      "title": "Bagan",
+      "features": [
+        "Tabs: UMUM/PENGELUARAN/PEMASUKAN",
+        "Bar charts for analytics"
+      ]
+    },
+    "kategori": {
+      "title": "Kategori",
+      "features": [
+        "Tabs: Pengeluaran / Pemasukan",
+        "Grid layout",
+        "Colored circle icons"
+      ]
+    },
+    "pengaturan": {
+      "title": "Pengaturan",
+      "features": [
+        "Multiple sub-screens",
+        "Settings list navigation"
+      ]
+    },
+    "add_transaction": {
+      "type": "Modal",
+      "features": [
+        "Numeric keypad",
+        "Category grid",
+        "Account dropdown",
+        "Date picker"
+      ]
+    }
+  },
+  "recommended_libraries": [
+    "lucide-react-native",
+    "react-native-svg",
+    "react-native-gifted-charts",
+    "@react-navigation/native",
+    "@react-navigation/drawer",
+    "@react-navigation/bottom-tabs",
+    "react-native-reanimated",
+    "react-native-gesture-handler",
+    "intl"
+  ],
+  "testing": {
+    "rules": [
+      "All interactive elements MUST have a data-testid attribute.",
+      "Convention: kebab-case, role-based.",
+      "Examples: data-testid='fab-add-transaction', data-testid='tab-pengeluaran', data-testid='input-amount'"
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Initialize React Native Expo without any web-only libraries (e.g., Shadcn or HTML elements).",
+    "Use standard StyleSheet.create for styling to maintain performance and consistency.",
+    "Implement navigation using @react-navigation/drawer for the Side Drawer and bottom tabs for main views.",
+    "Build a custom Header component to achieve the required curved bottom corners (borderBottomLeftRadius/RightRadius: 24) and #4A8B7B background.",
+    "Use lucide-react-native for all icons.",
+    "For charts, use react-native-gifted-charts and react-native-svg for the Donut and Bar charts.",
+    "Ensure the numeric keypad in the Add Transaction modal is custom or optimized for quick currency entry without decimal clutter.",
+    "Format currency natively in Bahasa Indonesia format (Rp123.456). Use Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).",
+    "Set Monday (Senin) as the start of the week for any period selector or date picker."
+  ]
+}
