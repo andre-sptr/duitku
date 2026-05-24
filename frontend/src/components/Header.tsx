@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from "react-native";
 import { Menu } from "lucide-react-native";
-import { colors, fontSizes, spacing, radius } from "@/src/lib/theme";
+import { colors, fontSizes, spacing, radius, shadow } from "@/src/lib/theme";
 
 type Props = {
   title: string;
@@ -41,6 +41,8 @@ const styles = StyleSheet.create({
     paddingTop: (Platform.OS === "android" ? StatusBar.currentHeight || 0 : 48) + spacing.sm,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.md,
+    ...shadow.card,
+    zIndex: 1,
   },
   row: {
     flexDirection: "row",
