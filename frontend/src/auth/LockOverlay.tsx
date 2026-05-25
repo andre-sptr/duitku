@@ -13,13 +13,24 @@ const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 export function LockOverlay() {
   const {
-    locked, pinConfigured, biometricAvailable, biometricType,
+    locked, pinConfigured, biometricAvailable, biometricType, pinLockedUntil,
     unlockWithPin, unlockWithBiometrics, resetPinSecurity,
   } = useAppLock();
 
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(Date.now());
+
+  const lockedOut = now < pinLockedUntil;
+  const remainingSec = lockedOut ? Math.ceil((pinLockedUntil - now) / 1000) : 0;
+
+  // Tick the countdown every second while locked out.
+  useEffect(() => {
+    if (!lockedOut) return;
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [lockedOut]);
 
   // Auto-trigger biometric prompt when overlay appears
   useEffect(() => {
@@ -39,7 +50,7 @@ export function LockOverlay() {
 
   // Auto-verify when 4 digits entered
   useEffect(() => {
-    if (pin.length === 4 && !busy) {
+    if (pin.length === 4 && !busy && !lockedOut) {
       (async () => {
         setBusy(true);
         const ok = await unlockWithPin(pin);
@@ -51,11 +62,12 @@ export function LockOverlay() {
         setBusy(false);
       })();
     }
-  }, [pin, busy, unlockWithPin]);
+  }, [pin, busy, unlockWithPin, lockedOut]);
 
   if (!locked || !pinConfigured) return null;
 
   const press = (k: string) => {
+    if (lockedOut) return;
     setError(null);
     setPin((prev) => (prev.length >= 4 ? prev : prev + k));
   };
@@ -112,14 +124,23 @@ export function LockOverlay() {
         ))}
       </View>
 
-      {error ? <Text style={styles.errorText} testID="pin-error">{error}</Text> : <View style={{ height: 18 }} />}
+      {lockedOut ? (
+        <Text style={styles.errorText} testID="pin-lockout">
+          Terlalu banyak percobaan. Coba lagi dalam {remainingSec}s
+        </Text>
+      ) : error ? (
+        <Text style={styles.errorText} testID="pin-error">{error}</Text>
+      ) : (
+        <View style={{ height: 18 }} />
+      )}
 
       <View style={styles.keypad}>
         {KEYS.map((k) => (
           <TouchableOpacity
             key={k}
-            style={styles.key}
+            style={[styles.key, lockedOut && styles.keyDisabled]}
             onPress={() => press(k)}
+            disabled={lockedOut}
             activeOpacity={0.6}
             testID={`lock-key-${k}`}
           >
@@ -136,10 +157,10 @@ export function LockOverlay() {
             <BiometricIcon size={28} color="#FFFFFF" />
           ) : null}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.key} onPress={() => press("0")} testID="lock-key-0">
+        <TouchableOpacity style={[styles.key, lockedOut && styles.keyDisabled]} onPress={() => press("0")} disabled={lockedOut} testID="lock-key-0">
           <Text style={styles.keyText}>0</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.key} onPress={back} testID="lock-key-back">
+        <TouchableOpacity style={[styles.key, lockedOut && styles.keyDisabled]} onPress={back} disabled={lockedOut} testID="lock-key-back">
           <Delete size={26} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -204,6 +225,7 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.12)",
   },
+  keyDisabled: { opacity: 0.35 },
   keyText: { fontSize: 28, fontWeight: "600", color: "#FFFFFF" },
   bioBtn: {
     marginTop: spacing.lg,

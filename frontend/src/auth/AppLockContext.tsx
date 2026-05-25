@@ -3,7 +3,10 @@ import React, {
 } from "react";
 import { AppState, AppStateStatus } from "react-native";
 
-import { isPinSet, verifyPin, clearPin } from "./pinService";
+import {
+  isPinSet, verifyPin, clearPin,
+  getPinLockStatus, registerFailedPin, resetPinAttempts,
+} from "./pinService";
 import {
   getBiometricSupport, isBiometricEnabled, authenticateWithBiometrics,
   setBiometricEnabled, BiometricType,
@@ -13,6 +16,7 @@ type Ctx = {
   ready: boolean;
   pinConfigured: boolean;
   locked: boolean;
+  pinLockedUntil: number;
   biometricAvailable: boolean;
   biometricType: BiometricType;
   refreshPinState: () => Promise<void>;
@@ -31,6 +35,7 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
   const [locked, setLocked] = useState(true);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricType, setBiometricType] = useState<BiometricType>("unknown");
+  const [pinLockedUntil, setPinLockedUntil] = useState(0);
 
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
@@ -57,6 +62,8 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
       await refreshPinState();
       const set = await isPinSet();
       setLocked(set); // locked only if PIN is configured
+      const status = await getPinLockStatus();
+      setPinLockedUntil(status.lockedUntil);
       setReady(true);
     })();
   }, [refreshPinState]);
@@ -74,10 +81,18 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
   }, [pinConfigured]);
 
   const unlockWithPin = useCallback(async (pin: string) => {
+    if (Date.now() < pinLockedUntil) return false;
     const ok = await verifyPin(pin);
-    if (ok) setLocked(false);
-    return ok;
-  }, []);
+    if (ok) {
+      await resetPinAttempts();
+      setPinLockedUntil(0);
+      setLocked(false);
+      return true;
+    }
+    const status = await registerFailedPin();
+    setPinLockedUntil(status.lockedUntil);
+    return false;
+  }, [pinLockedUntil]);
 
   const unlockWithBiometrics = useCallback(async () => {
     if (!biometricAvailable) return false;
@@ -97,6 +112,7 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
     setPinConfigured(false);
     setBiometricAvailable(false);
     setLocked(false);
+    setPinLockedUntil(0);
   }, []);
 
   return (
@@ -105,6 +121,7 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
         ready,
         pinConfigured,
         locked,
+        pinLockedUntil,
         biometricAvailable,
         biometricType,
         refreshPinState,

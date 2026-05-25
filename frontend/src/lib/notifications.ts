@@ -67,10 +67,13 @@ function repeatToTrigger(date: Date, repeat: string): any {
       minute: date.getMinutes(),
     };
   }
-  // monthly handled as date trigger (single fire). User can re-create or we re-schedule.
   if (repeat === "monthly") {
-    // monthly recurrence isn't a direct schedule type; use one-shot then user can re-schedule
-    return { type: Notifications.SchedulableTriggerInputTypes.DATE, date };
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.MONTHLY,
+      day: date.getDate(),
+      hour: date.getHours(),
+      minute: date.getMinutes(),
+    };
   }
   // none / default
   return { type: Notifications.SchedulableTriggerInputTypes.DATE, date };

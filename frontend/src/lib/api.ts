@@ -1,6 +1,7 @@
 // API client for DuitKu backend
 
 const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 
 if (!BASE_URL) {
   console.warn("EXPO_PUBLIC_BACKEND_URL is not set");
@@ -8,8 +9,12 @@ if (!BASE_URL) {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}/api${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
+      ...(init?.headers as Record<string, string> | undefined),
+    },
   });
   if (!res.ok) {
     const txt = await res.text().catch(() => "");

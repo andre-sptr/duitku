@@ -39,7 +39,7 @@ export async function getBiometricSupport(): Promise<BiometricSupport> {
 }
 
 export async function isBiometricEnabled(): Promise<boolean> {
-  const v = await storage.secureGet(BIOMETRIC_ENABLED_KEY, false);
+  const v = await storage.secureGet<boolean>(BIOMETRIC_ENABLED_KEY, false);
   return v === true;
 }
 

@@ -333,7 +333,7 @@ export default function TransactionScreen() {
         visible={datePickerOpen}
         date={date}
         onClose={() => setDatePickerOpen(false)}
-        onSelect={(d) => { setDate(d); setDatePickerOpen(false); }}
+        onSelect={(d: Date) => { setDate(d); setDatePickerOpen(false); }}
       />
     </SafeAreaView>
   );
@@ -388,7 +388,7 @@ function DatePickerModal({ visible, date, onClose, onSelect }: any) {
         <View style={styles.dayGrid}>
           {grid.map((d, i) => {
             const selected =
-              d && d === date.getDate() && month === date.getMonth() && year === date.getFullYear();
+              !!d && d === date.getDate() && month === date.getMonth() && year === date.getFullYear();
             return (
               <TouchableOpacity
                 key={i}

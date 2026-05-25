@@ -1,0 +1,30 @@
+# Render Blueprint — deploys the DuitKu FastAPI backend.
+#
+# How to use:
+#   1. Push this repo to GitHub (already done).
+#   2. On render.com: New -> Blueprint -> select this repository.
+#   3. Render reads this file and creates the web service automatically.
+#   4. When prompted, fill in the secret values: MONGO_URL, DB_NAME, API_KEY.
+#   5. In MongoDB Atlas -> Network Access, allow 0.0.0.0/0 so Render can connect.
+#   6. Copy the public URL Render gives you into the frontend's
+#      EXPO_PUBLIC_BACKEND_URL (and EXPO_PUBLIC_API_KEY), then rebuild the app.
+#
+# Note: the free plan sleeps after inactivity, so the first request after idle
+# can take ~30-50 seconds to wake up. That is normal for the free tier.
+
+services:
+  - type: web
+    name: duitku-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: API_KEY
+        sync: false

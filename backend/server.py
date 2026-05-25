@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Header, Depends
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -8,6 +8,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 
 
@@ -18,10 +19,45 @@ mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
-app = FastAPI(title="DuitKu API")
-api_router = APIRouter(prefix="/api")
-
 USER_ID = "default"  # Single-user MVP
+
+# Shared-secret gate. When API_KEY is set (e.g. on a public deployment), every
+# /api request must send a matching X-API-Key header. Empty = open (local dev).
+API_KEY = os.environ.get("API_KEY", "").strip()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if not API_KEY:
+        logger.warning("API_KEY not set — the /api endpoints are OPEN. Set API_KEY before deploying publicly.")
+    await ensure_indexes()
+    await seed_defaults()
+    yield
+    client.close()
+
+
+app = FastAPI(title="DuitKu API", lifespan=lifespan)
+
+
+async def require_api_key(x_api_key: Optional[str] = Header(default=None)):
+    if not API_KEY:
+        return
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+api_router = APIRouter(prefix="/api", dependencies=[Depends(require_api_key)])
+
+
+@app.get("/")
+async def health():
+    return {"status": "ok"}
 
 
 # ============ Models ============
@@ -195,14 +231,11 @@ def _clean(doc: dict) -> dict:
     return doc
 
 
-async def _recalc_account_balance(account_id: str):
-    """Recompute account balance from transactions."""
+async def _sum_by_type(account_id: str):
+    """Return (income_total, expense_total) across an account's transactions."""
     pipeline = [
         {"$match": {"userId": USER_ID, "accountId": account_id}},
-        {"$group": {
-            "_id": "$type",
-            "total": {"$sum": "$amount"},
-        }},
+        {"$group": {"_id": "$type", "total": {"$sum": "$amount"}}},
     ]
     income = 0.0
     expense = 0.0
@@ -211,6 +244,12 @@ async def _recalc_account_balance(account_id: str):
             income = float(row["total"])
         elif row["_id"] == "expense":
             expense = float(row["total"])
+    return income, expense
+
+
+async def _recalc_account_balance(account_id: str):
+    """Recompute account balance from transactions."""
+    income, expense = await _sum_by_type(account_id)
     # Get initial balance stored on account meta (we treat current balance as initial + income - expense)
     acc = await db.accounts.find_one({"id": account_id, "userId": USER_ID}, {"_id": 0})
     if not acc:
@@ -227,6 +266,18 @@ async def _recalc_account_balance(account_id: str):
         {"id": account_id, "userId": USER_ID},
         {"$set": {"balance": new_balance}},
     )
+
+
+async def _ensure_account_exists(account_id: str):
+    found = await db.accounts.find_one({"id": account_id, "userId": USER_ID}, {"_id": 1})
+    if not found:
+        raise HTTPException(400, "Rekening tidak ditemukan")
+
+
+async def _ensure_category_exists(category_id: str):
+    found = await db.categories.find_one({"id": category_id, "userId": USER_ID}, {"_id": 1})
+    if not found:
+        raise HTTPException(400, "Kategori tidak ditemukan")
 
 
 # ============ Seed ============
@@ -253,6 +304,18 @@ DEFAULT_INCOME_CATS = [
     ("Investasi", "TrendingUp", "#42A5F5"),
     ("Lainnya", "MoreHorizontal", "#757575"),
 ]
+
+
+async def ensure_indexes():
+    await db.transactions.create_index("id")
+    await db.transactions.create_index([("userId", 1), ("date", -1)])
+    await db.transactions.create_index([("userId", 1), ("accountId", 1)])
+    await db.accounts.create_index("id")
+    await db.accounts.create_index([("userId", 1), ("order", 1)])
+    await db.categories.create_index("id")
+    await db.categories.create_index([("userId", 1), ("type", 1), ("order", 1)])
+    await db.recurring.create_index([("userId", 1), ("nextDueDate", 1)])
+    await db.reminders.create_index([("userId", 1), ("dateTime", 1)])
 
 
 async def seed_defaults():
@@ -312,17 +375,7 @@ async def update_account(account_id: str, payload: AccountUpdate):
         if not current:
             raise HTTPException(404, "Account not found")
         # Compute tx delta
-        pipeline = [
-            {"$match": {"userId": USER_ID, "accountId": account_id}},
-            {"$group": {"_id": "$type", "total": {"$sum": "$amount"}}},
-        ]
-        income = 0.0
-        expense = 0.0
-        async for row in db.transactions.aggregate(pipeline):
-            if row["_id"] == "income":
-                income = float(row["total"])
-            elif row["_id"] == "expense":
-                expense = float(row["total"])
+        income, expense = await _sum_by_type(account_id)
         update["initialBalance"] = float(update["balance"]) - income + expense
     res = await db.accounts.update_one(
         {"id": account_id, "userId": USER_ID}, {"$set": update}
@@ -413,6 +466,8 @@ async def list_transactions(
 
 @api_router.post("/transactions", response_model=Transaction)
 async def create_transaction(payload: TransactionCreate):
+    await _ensure_account_exists(payload.accountId)
+    await _ensure_category_exists(payload.categoryId)
     data = payload.dict()
     if not data.get("date"):
         data["date"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -430,6 +485,10 @@ async def update_transaction(transaction_id: str, payload: TransactionUpdate):
     existing = await db.transactions.find_one({"id": transaction_id, "userId": USER_ID}, {"_id": 0})
     if not existing:
         raise HTTPException(404, "Transaction not found")
+    if "accountId" in update:
+        await _ensure_account_exists(update["accountId"])
+    if "categoryId" in update:
+        await _ensure_category_exists(update["categoryId"])
     res = await db.transactions.update_one(
         {"id": transaction_id, "userId": USER_ID}, {"$set": update}
     )
@@ -599,6 +658,8 @@ async def list_recurring():
 
 @api_router.post("/recurring", response_model=RegularPayment)
 async def create_recurring(payload: RegularPaymentCreate):
+    await _ensure_account_exists(payload.accountId)
+    await _ensure_category_exists(payload.categoryId)
     data = payload.dict()
     start = data.get("startDate") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     data["startDate"] = start
@@ -613,6 +674,10 @@ async def update_recurring(item_id: str, payload: RegularPaymentUpdate):
     update = {k: v for k, v in payload.dict().items() if v is not None}
     if not update:
         raise HTTPException(400, "No fields to update")
+    if "accountId" in update:
+        await _ensure_account_exists(update["accountId"])
+    if "categoryId" in update:
+        await _ensure_category_exists(update["categoryId"])
     res = await db.recurring.update_one(
         {"id": item_id, "userId": USER_ID}, {"$set": update}
     )
@@ -713,19 +778,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
-
-
-@app.on_event("startup")
-async def startup_event():
-    await seed_defaults()
-
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
