@@ -173,7 +173,7 @@ export default function Beranda() {
       </ScrollView>
 
       <FAB
-        onPress={() => router.push({ pathname: "/transaction", params: { type } } as any)}
+        onPress={() => router.push({ pathname: "/transaction", params: { type } })}
         testID="fab-add-transaction"
       />
 

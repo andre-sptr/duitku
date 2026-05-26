@@ -10,7 +10,7 @@ import { X, Calendar, Delete, ChevronDown, Trash2 } from "lucide-react-native";
 import { Icon } from "@/src/lib/icons";
 import { Accounts, Categories, Transactions, Account, Category } from "@/src/lib/api";
 import { colors, fontSizes, radius, shadow, spacing } from "@/src/lib/theme";
-import { formatRp, formatDateId, toIsoDate, fromIsoDate } from "@/src/lib/format";
+import { formatRp, formatDateId, toIsoDate, fromIsoDate, monthsId } from "@/src/lib/format";
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "000", "0", "DEL"];
 
@@ -109,9 +109,9 @@ export default function TransactionScreen() {
         date: toIsoDate(date),
       };
       if (editId) {
-        await Transactions.update(editId, payload as any);
+        await Transactions.update(editId, payload);
       } else {
-        await Transactions.create(payload as any);
+        await Transactions.create(payload);
       }
       router.back();
     } catch (e: any) {
@@ -343,11 +343,6 @@ function DatePickerModal({ visible, date, onClose, onSelect }: any) {
   const [cur, setCur] = useState(new Date(date));
 
   useEffect(() => { setCur(new Date(date)); }, [date, visible]);
-
-  const monthsId = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-  ];
 
   const year = cur.getFullYear();
   const month = cur.getMonth();
