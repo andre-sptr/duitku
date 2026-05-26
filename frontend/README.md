@@ -1,50 +1,103 @@
-# Welcome to your Expo app 👋
+# DuitKu Frontend — Deploy ke VPS Ubuntu (aaPanel)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Frontend DuitKu adalah aplikasi **Expo (React Native)** yang menghasilkan dua bentuk:
 
-## Get started
+| Target | Cara distribusi |
+|--------|-----------------|
+| **Android** | APK yang di-*install* di HP (dibuat dengan **EAS Build**) — **tidak** di-hosting di VPS. |
+| **Web** | Kumpulan file statis (HTML/JS/CSS) yang **bisa di-hosting** di VPS via aaPanel. |
 
-1. Install dependencies
+Panduan ini fokus pada **deploy versi WEB** ke VPS Ubuntu memakai aaPanel. Untuk Android,
+lihat bagian [Build APK](#build-apk-android-bukan-via-vps) di bawah.
 
-   ```bash
-   npm install
-   ```
+> Untuk menjalankan secara lokal (development), lihat [README utama](../README.md).
 
-2. Start the app
+## Prasyarat
 
-   ```bash
-   npx expo start
-   ```
+- VPS Ubuntu dengan **aaPanel** terpasang.
+- Domain/subdomain di-arahkan (A record) ke IP VPS, mis. `app.domainanda.com`.
+- **Backend sudah online lebih dulu** (lihat [`../backend/README.md`](../backend/README.md)),
+  karena URL backend "dibakar" ke dalam build web.
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Langkah 1 — Build versi web (di komputer Anda)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Variabel `EXPO_PUBLIC_*` ditanam **saat build**, jadi set dulu ke nilai produksi.
+Buat/ubah `frontend/.env`:
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```env
+EXPO_PUBLIC_BACKEND_URL=https://api.domainanda.com
+EXPO_PUBLIC_API_KEY=<API_KEY-yang-sama-dengan-backend>
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Lalu build:
 
-## Learn more
+```bash
+cd frontend
+npm install
+npx expo export --platform web
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Hasilnya ada di folder **`frontend/dist/`** — file statis siap di-hosting.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+## Langkah 2 — Buat Website di aaPanel
 
-Join our community of developers creating universal apps.
+1. Login aaPanel → menu **Website** → **Add site**.
+2. Domain: `app.domainanda.com`. Opsi FTP & Database boleh dikosongkan (tidak perlu).
+3. aaPanel membuat folder root, biasanya `/www/wwwroot/app.domainanda.com`.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Langkah 3 — Unggah isi folder `dist/`
+
+- Buka **File Manager** aaPanel → masuk ke folder root situs di atas.
+- Unggah **isi** folder `dist/` (bukan foldernya). Tip: zip dulu `dist/`, unggah,
+  lalu **Extract** di aaPanel.
+- Pastikan `index.html` berada **langsung** di root situs.
+
+## Langkah 4 — Atur nginx (fallback rute)
+
+Agar refresh halaman dalam tidak menghasilkan 404, sesuaikan blok `location /`:
+
+1. Website → klik situs → **Config**.
+2. Ubah/ tambahkan:
+
+   ```nginx
+   location / {
+       try_files $uri $uri.html $uri/ /index.html;
+   }
+   ```
+
+3. Simpan, lalu **Reload** nginx.
+
+## Langkah 5 — Aktifkan HTTPS (SSL)
+
+- Website → situs → **SSL** → tab **Let's Encrypt** → pilih domain → **Apply**.
+- Aktifkan **Force HTTPS**.
+
+## Langkah 6 — Cek
+
+Buka `https://app.domainanda.com`. Aplikasi tampil dan dapat memuat data dari backend.
+Jika data tidak muncul:
+
+- Pastikan `EXPO_PUBLIC_BACKEND_URL` saat build sudah benar (harus `https://...`).
+- Pastikan backend online dan `EXPO_PUBLIC_API_KEY` cocok dengan `API_KEY` backend.
+
+> Setiap kali kode berubah, ulangi **Langkah 1 & 3** (build ulang + unggah ulang `dist/`).
+
+---
+
+## Build APK Android (bukan via VPS)
+
+APK tidak di-hosting di VPS — dibuat dengan **EAS Build**:
+
+```bash
+npm install -g eas-cli
+eas login
+eas build -p android --profile preview
+```
+
+EAS memberi tautan unduh APK untuk di-install di HP. Pastikan `frontend/.env`
+(`EXPO_PUBLIC_BACKEND_URL` + `EXPO_PUBLIC_API_KEY`) menunjuk ke **backend produksi**
+sebelum build.
