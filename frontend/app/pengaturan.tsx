@@ -1,12 +1,13 @@
 import React, { useCallback, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Share, Platform, Switch,
+  Modal, TextInput, KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   Lock, Palette, Sliders, Bell, Globe, Trash2, Download, Info,
-  ChevronRight, RefreshCw, Repeat, BellRing, Fingerprint, ScanFace,
+  ChevronRight, RefreshCw, Repeat, BellRing, Fingerprint, ScanFace, Upload,
 } from "lucide-react-native";
 
 import { Header } from "@/src/components/Header";
@@ -26,6 +27,8 @@ export default function Pengaturan() {
   const [bioSupport, setBioSupport] = useState<{ supported: boolean; enrolled: boolean; type: string }>(
     { supported: false, enrolled: false, type: "unknown" }
   );
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
 
   const loadAuthState = useCallback(async () => {
     setBioEnabled(await isBiometricEnabled());
@@ -101,6 +104,44 @@ export default function Pengaturan() {
     } catch (e: any) {
       Alert.alert("Gagal Export", e?.message || "Coba lagi");
     }
+  };
+
+  const onImport = () => {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(importText);
+    } catch {
+      Alert.alert("JSON tidak valid", "Pastikan Anda menempel isi file cadangan dengan benar.");
+      return;
+    }
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.accounts)) {
+      Alert.alert("Format tidak dikenali", "File harus hasil Export dari DuitKu.");
+      return;
+    }
+    Alert.alert(
+      "Pulihkan Data?",
+      "Ini akan MENGGANTI seluruh data saat ini dengan isi cadangan. Tidak dapat dibatalkan.",
+      [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Pulihkan",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const res = await DataApi.import(parsed);
+              setImportOpen(false);
+              setImportText("");
+              Alert.alert(
+                "Berhasil",
+                `Dipulihkan: ${res.accounts} rekening, ${res.categories} kategori, ${res.transactions} transaksi.`
+              );
+            } catch (e: any) {
+              Alert.alert("Gagal Memulihkan", e?.message || "Coba lagi");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const BioIcon = biometricType === "face" || bioSupport.type === "face" ? ScanFace : Fingerprint;
@@ -188,6 +229,10 @@ export default function Pengaturan() {
             onPress={onExport}
             testID="setting-export"
           />
+          <Row icon={Upload} title="Pulihkan (Import JSON)" subtitle="Tempel cadangan untuk memulihkan"
+            onPress={() => setImportOpen(true)}
+            testID="setting-import"
+          />
           <Row icon={RefreshCw} title="Hitung Ulang Saldo" subtitle="Perbarui semua saldo rekening"
             onPress={() => Alert.alert("Info", "Saldo dihitung otomatis setiap kali transaksi diubah")}
             testID="setting-recalc"
@@ -207,6 +252,37 @@ export default function Pengaturan() {
 
         <Text style={styles.footer}>Dibuat dengan ❤️ untuk Anda</Text>
       </ScrollView>
+
+      <Modal visible={importOpen} transparent animationType="slide" onRequestClose={() => setImportOpen(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.importWrap}
+        >
+          <TouchableOpacity style={styles.importBackdrop} activeOpacity={1} onPress={() => setImportOpen(false)} />
+          <View style={styles.importSheet}>
+            <Text style={styles.importTitle}>Pulihkan Data</Text>
+            <Text style={styles.importHint}>Tempel isi file cadangan (hasil Export) di bawah ini.</Text>
+            <TextInput
+              style={styles.importInput}
+              value={importText}
+              onChangeText={setImportText}
+              placeholder={'{"version":2,"accounts":[...]}'}
+              placeholderTextColor={colors.textMuted}
+              multiline
+              textAlignVertical="top"
+              testID="import-input"
+            />
+            <View style={styles.importBtnRow}>
+              <TouchableOpacity style={[styles.importBtn, styles.importBtnGhost]} onPress={() => setImportOpen(false)} testID="import-cancel">
+                <Text style={styles.importBtnGhostText}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.importBtn, styles.importBtnPrimary]} onPress={onImport} testID="import-confirm">
+                <Text style={styles.importBtnPrimaryText}>Pulihkan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <SideDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </View>
@@ -308,4 +384,32 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.small,
     marginTop: spacing.lg,
   },
+  importWrap: { flex: 1, justifyContent: "flex-end" },
+  importBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay },
+  importSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  importTitle: { fontSize: fontSizes.h2, fontWeight: "600", color: colors.textPrimary, marginBottom: spacing.xs },
+  importHint: { fontSize: fontSizes.small, color: colors.textSecondary, marginBottom: spacing.md },
+  importInput: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    minHeight: 140,
+    maxHeight: 240,
+    fontSize: fontSizes.body,
+    color: colors.textPrimary,
+  },
+  importBtnRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.md },
+  importBtn: { flex: 1, paddingVertical: 14, borderRadius: radius.md, alignItems: "center" },
+  importBtnGhost: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  importBtnGhostText: { color: colors.textPrimary, fontWeight: "600", fontSize: fontSizes.body },
+  importBtnPrimary: { backgroundColor: colors.primary },
+  importBtnPrimaryText: { color: "#FFFFFF", fontWeight: "600", fontSize: fontSizes.body },
 });

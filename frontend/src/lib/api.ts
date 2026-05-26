@@ -18,7 +18,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${txt || res.statusText}`);
+    let message = txt || res.statusText;
+    try {
+      const parsed = JSON.parse(txt);
+      if (parsed && typeof parsed.detail === "string") message = parsed.detail;
+    } catch {
+      // response body wasn't JSON — keep the raw text
+    }
+    throw new Error(message);
   }
   return res.json() as Promise<T>;
 }
@@ -144,6 +151,11 @@ export const Stats = {
 export const DataApi = {
   reset: () => request<{ ok: boolean }>("/data/reset", { method: "POST" }),
   export: () => request<any>("/data/export"),
+  import: (data: any) =>
+    request<{ ok: boolean; accounts: number; categories: number; transactions: number }>(
+      "/data/import",
+      { method: "POST", body: JSON.stringify(data) },
+    ),
 };
 
 // Phase 2 types

@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import asyncio
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
@@ -35,7 +36,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     if not API_KEY:
-        logger.warning("API_KEY not set — the /api endpoints are OPEN. Set API_KEY before deploying publicly.")
+        logger.warning("API_KEY not set - the /api endpoints are OPEN. Set API_KEY before deploying publicly.")
     await ensure_indexes()
     await seed_defaults()
     yield
@@ -307,15 +308,18 @@ DEFAULT_INCOME_CATS = [
 
 
 async def ensure_indexes():
-    await db.transactions.create_index("id")
-    await db.transactions.create_index([("userId", 1), ("date", -1)])
-    await db.transactions.create_index([("userId", 1), ("accountId", 1)])
-    await db.accounts.create_index("id")
-    await db.accounts.create_index([("userId", 1), ("order", 1)])
-    await db.categories.create_index("id")
-    await db.categories.create_index([("userId", 1), ("type", 1), ("order", 1)])
-    await db.recurring.create_index([("userId", 1), ("nextDueDate", 1)])
-    await db.reminders.create_index([("userId", 1), ("dateTime", 1)])
+    # Created concurrently to keep startup fast (matters for cold starts).
+    await asyncio.gather(
+        db.transactions.create_index("id"),
+        db.transactions.create_index([("userId", 1), ("date", -1)]),
+        db.transactions.create_index([("userId", 1), ("accountId", 1)]),
+        db.accounts.create_index("id"),
+        db.accounts.create_index([("userId", 1), ("order", 1)]),
+        db.categories.create_index("id"),
+        db.categories.create_index([("userId", 1), ("type", 1), ("order", 1)]),
+        db.recurring.create_index([("userId", 1), ("nextDueDate", 1)]),
+        db.reminders.create_index([("userId", 1), ("dateTime", 1)]),
+    )
 
 
 async def seed_defaults():
@@ -535,11 +539,13 @@ async def stats_summary(
         }},
         {"$sort": {"total": -1}},
     ]
+    cat_docs = await db.categories.find({"userId": USER_ID}, {"_id": 0}).to_list(1000)
+    cat_map = {c["id"]: c for c in cat_docs}
     result = []
     total = 0.0
     async for row in db.transactions.aggregate(pipeline):
         cat_id = row["_id"]
-        cat = await db.categories.find_one({"id": cat_id, "userId": USER_ID}, {"_id": 0})
+        cat = cat_map.get(cat_id)
         amount = float(row["total"])
         total += amount
         result.append({
@@ -614,12 +620,74 @@ async def export_data():
     accounts = await db.accounts.find({"userId": USER_ID}, {"_id": 0}).to_list(1000)
     categories = await db.categories.find({"userId": USER_ID}, {"_id": 0}).to_list(1000)
     transactions = await db.transactions.find({"userId": USER_ID}, {"_id": 0}).to_list(10000)
+    recurring = await db.recurring.find({"userId": USER_ID}, {"_id": 0}).to_list(1000)
+    reminders = await db.reminders.find({"userId": USER_ID}, {"_id": 0}).to_list(1000)
     return {
-        "version": 1,
+        "version": 2,
         "exportedAt": datetime.now(timezone.utc).isoformat(),
         "accounts": accounts,
         "categories": categories,
         "transactions": transactions,
+        "recurring": recurring,
+        "reminders": reminders,
+    }
+
+
+class ImportPayload(BaseModel):
+    accounts: List[dict] = []
+    categories: List[dict] = []
+    transactions: List[dict] = []
+    recurring: List[dict] = []
+    reminders: List[dict] = []
+
+
+@api_router.post("/data/import")
+async def import_data(payload: ImportPayload):
+    """Replace ALL current data with the contents of a backup (restore)."""
+    def _stamp(items):
+        cleaned = []
+        for it in items:
+            doc = {k: v for k, v in it.items() if k != "_id"}
+            doc["userId"] = USER_ID
+            cleaned.append(doc)
+        return cleaned
+
+    accounts = _stamp(payload.accounts)
+    categories = _stamp(payload.categories)
+    transactions = _stamp(payload.transactions)
+    recurring = _stamp(payload.recurring)
+    reminders = _stamp(payload.reminders)
+
+    # Wipe current data, then restore from the backup.
+    await db.transactions.delete_many({"userId": USER_ID})
+    await db.accounts.delete_many({"userId": USER_ID})
+    await db.categories.delete_many({"userId": USER_ID})
+    await db.recurring.delete_many({"userId": USER_ID})
+    await db.reminders.delete_many({"userId": USER_ID})
+
+    if accounts:
+        await db.accounts.insert_many(accounts)
+    if categories:
+        await db.categories.insert_many(categories)
+    if transactions:
+        await db.transactions.insert_many(transactions)
+    if recurring:
+        await db.recurring.insert_many(recurring)
+    if reminders:
+        await db.reminders.insert_many(reminders)
+
+    # Recompute balances from the restored transactions.
+    for acc in accounts:
+        if acc.get("id"):
+            await _recalc_account_balance(acc["id"])
+
+    return {
+        "ok": True,
+        "accounts": len(accounts),
+        "categories": len(categories),
+        "transactions": len(transactions),
+        "recurring": len(recurring),
+        "reminders": len(reminders),
     }
 
 
